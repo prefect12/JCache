@@ -4,7 +4,7 @@ import (
 	"container/list"
 )
 
-type Cache struct {
+type LruCache struct {
 	maxBytes int64
 	nbytes int64
 	ll *list.List
@@ -12,17 +12,9 @@ type Cache struct {
 	OnEvicted func(key string,value Value)
 }
 
-type entry struct {
-	key string
-	value Value
-}
 
-type Value interface {
-	Len() int
-}
-
-func New(maxBytes int64,onEvicate func(string,Value)) *Cache{
-	return &Cache{
+func NewLruCache(maxBytes int64,onEvicate func(string, Value)) *LruCache {
+	return &LruCache{
 		maxBytes: maxBytes,
 		ll:list.New(),
 		cache: make(map[string]*list.Element),
@@ -30,7 +22,7 @@ func New(maxBytes int64,onEvicate func(string,Value)) *Cache{
 	}
 }
 
-func (c *Cache)Get(key string)(value Value,ok bool){
+func (c *LruCache)Get(key string)(value Value,ok bool){
 	if ele,ok := c.cache[key];ok{
 		c.ll.MoveToFront(ele)
 		kv := ele.Value.(*entry)
@@ -39,7 +31,7 @@ func (c *Cache)Get(key string)(value Value,ok bool){
 	return nil,false
 }
 
-func (c *Cache)RemoveOldest(){
+func (c *LruCache)RemoveOldest(){
 	ele := c.ll.Back()
 	if ele != nil{
 		c.ll.Remove(ele)
@@ -52,7 +44,7 @@ func (c *Cache)RemoveOldest(){
 	}
 }
 
-func (c *Cache)Add(key string,value Value){
+func (c *LruCache)Add(key string,value Value){
 	if ele,ok := c.cache[key];ok{
 		c.ll.MoveToFront(ele)
 		kv := ele.Value.(*entry)
@@ -69,6 +61,6 @@ func (c *Cache)Add(key string,value Value){
 	}
 }
 
-func (c *Cache)Len()int{
+func (c *LruCache)Len()int{
 	return c.ll.Len()
 }
