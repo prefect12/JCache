@@ -8,3 +8,9 @@ type entry struct {
 type Value interface {
 	Len() int
 }
+
+type String string
+
+func (s String)Len()int{
+	return len(s)
+}

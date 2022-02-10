@@ -4,7 +4,7 @@ import (
 	"container/heap"
 )
 
-type Frequency []freqItem
+type Frequency []*freqItem
 
 type freqItem struct {
 	Entry *entry
@@ -26,7 +26,7 @@ func(f Frequency)Swap(i,j int){
 }
 
 func(f *Frequency)Push(x interface{}){
-	item := x.(freqItem)
+	item := x.(*freqItem)
 	*f = append(*f,item)
 }
 
@@ -67,7 +67,7 @@ func (c *LfuCache)Get(key string)(value Value,ok bool){
 }
 
 func (c *LfuCache)RemoveOldest(){
-	item := c.frequency.Pop().(freqItem)
+	item := c.frequency.Pop().(*freqItem)
 	delete(c.cache,item.Entry.key)
 	c.nbytes -= int64(len(item.Entry.key)) + int64(item.Entry.value.Len())
 	if c.OnEvicted != nil{
@@ -86,11 +86,13 @@ func(c *LfuCache)Add(key string,value Value){
 				key:key,
 				value: value,
 			},
-			frequency: 5,
+			frequency: 1,
 		}
 		heap.Push(c.frequency,ele)
 		c.cache[key] = ele
+		c.nbytes += int64(value.Len()) + int64(len(key))
 	}
+
 	for c.maxBytes != 0 && c.maxBytes < c.nbytes{
 		c.RemoveOldest()
 	}
