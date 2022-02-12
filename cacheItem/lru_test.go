@@ -2,12 +2,10 @@ package cacheItem
 
 import "testing"
 
-
-
-func TestGet(t *testing.T){
-	lru := NewLruCache(int64(1),nil)
-	lru.Add("key1",String("1,2,3"))
-	if v,ok := lru.Get("key1");!ok||string(v.(String)) != "1,2,3"{
+func TestGet(t *testing.T) {
+	lru := NewLruCache(int64(1), nil)
+	lru.Add("key1", String("1,2,3"))
+	if v, ok := lru.Get("key1"); !ok || string(v.(String)) != "1,2,3" {
 		t.Fatalf("cache fail")
 	}
 	if _, ok := lru.Get("key2"); ok {

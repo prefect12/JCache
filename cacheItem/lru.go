@@ -5,62 +5,61 @@ import (
 )
 
 type LruCache struct {
-	maxBytes int64
-	nbytes int64
-	ll *list.List
-	cache map[string]*list.Element
-	OnEvicted func(key string,value Value)
+	maxBytes  int64
+	nbytes    int64
+	ll        *list.List
+	cache     map[string]*list.Element
+	OnEvicted func(key string, value Value)
 }
 
-
-func NewLruCache(maxBytes int64,onEvicate func(string, Value)) *LruCache {
+func NewLruCache(maxBytes int64, onEvicate func(string, Value)) *LruCache {
 	return &LruCache{
-		maxBytes: maxBytes,
-		ll:list.New(),
-		cache: make(map[string]*list.Element),
+		maxBytes:  maxBytes,
+		ll:        list.New(),
+		cache:     make(map[string]*list.Element),
 		OnEvicted: onEvicate,
 	}
 }
 
-func (c *LruCache)Get(key string)(value Value,ok bool){
-	if ele,ok := c.cache[key];ok{
+func (c *LruCache) Get(key string) (value Value, ok bool) {
+	if ele, ok := c.cache[key]; ok {
 		c.ll.MoveToFront(ele)
 		kv := ele.Value.(*entry)
-		return kv.value,true
+		return kv.value, true
 	}
-	return nil,false
+	return nil, false
 }
 
-func (c *LruCache)RemoveOldest(){
+func (c *LruCache) RemoveOldest() {
 	ele := c.ll.Back()
-	if ele != nil{
+	if ele != nil {
 		c.ll.Remove(ele)
 		kv := ele.Value.(*entry)
-		delete(c.cache,kv.key)
+		delete(c.cache, kv.key)
 		c.nbytes -= int64(len(kv.key)) + int64(kv.value.Len())
-		if c.OnEvicted != nil{
-			c.OnEvicted(kv.key,kv.value)
+		if c.OnEvicted != nil {
+			c.OnEvicted(kv.key, kv.value)
 		}
 	}
 }
 
-func (c *LruCache)Add(key string,value Value){
-	if ele,ok := c.cache[key];ok{
+func (c *LruCache) Add(key string, value Value) {
+	if ele, ok := c.cache[key]; ok {
 		c.ll.MoveToFront(ele)
 		kv := ele.Value.(*entry)
 		c.nbytes += int64(value.Len()) - int64(kv.value.Len())
 		kv.value = value
-	}else{
-		ele := c.ll.PushFront(&entry{key,value})
+	} else {
+		ele := c.ll.PushFront(&entry{key, value})
 		c.cache[key] = ele
 		c.nbytes += int64(len(key)) + int64(value.Len())
 	}
 
-	for c.maxBytes != 0 && c.maxBytes < c.nbytes{
+	for c.maxBytes != 0 && c.maxBytes < c.nbytes {
 		c.RemoveOldest()
 	}
 }
 
-func (c *LruCache)Len()int{
+func (c *LruCache) Len() int {
 	return c.ll.Len()
 }

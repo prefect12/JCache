@@ -11,29 +11,29 @@ const defaultBasePath = "/_Jcache/"
 
 //peer picker pool
 type HTTPPool struct {
-	self string
+	self     string
 	basePath string
 }
 
-func NewHTTPPool(self string)*HTTPPool{
+func NewHTTPPool(self string) *HTTPPool {
 	return &HTTPPool{
-		self: self,
-		basePath:defaultBasePath,
+		self:     self,
+		basePath: defaultBasePath,
 	}
 }
 
-func(p *HTTPPool)Log(format string, v ...interface{}){
-	log.Printf("[server %s] %s",p.self,fmt.Sprintf(format,v...))
+func (p *HTTPPool) Log(format string, v ...interface{}) {
+	log.Printf("[server %s] %s", p.self, fmt.Sprintf(format, v...))
 }
 
-func(p *HTTPPool)ServeHTTP(w http.ResponseWriter,r *http.Request){
-	if !strings.HasPrefix(r.URL.Path,p.basePath){
+func (p *HTTPPool) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, p.basePath) {
 		panic("HTTPPool serving unexpect path" + r.URL.Path)
 	}
-	p.Log("%s %s",r.Method, r.URL.Path)
-	parts := strings.SplitN(r.URL.Path[len(p.basePath):],"/",2)
-	if len(parts) != 2{
-		http.Error(w,"bad request",http.StatusBadRequest)
+	p.Log("%s %s", r.Method, r.URL.Path)
+	parts := strings.SplitN(r.URL.Path[len(p.basePath):], "/", 2)
+	if len(parts) != 2 {
+		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -41,13 +41,13 @@ func(p *HTTPPool)ServeHTTP(w http.ResponseWriter,r *http.Request){
 	key := parts[1]
 
 	group := GetGroup(groupName)
-	if group == nil{
-		http.Error(w,"no such group"+groupName,http.StatusNotFound)
+	if group == nil {
+		http.Error(w, "no such group"+groupName, http.StatusNotFound)
 		return
 	}
-	view,err := group.Get(key)
-	if err != nil{
-		http.Error(w,err.Error(),http.StatusInternalServerError)
+	view, err := group.Get(key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

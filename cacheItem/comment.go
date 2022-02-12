@@ -11,6 +11,6 @@ type Value interface {
 
 type String string
 
-func (s String)Len()int{
+func (s String) Len() int {
 	return len(s)
 }

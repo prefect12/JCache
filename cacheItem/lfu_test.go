@@ -5,15 +5,13 @@ import (
 	"testing"
 )
 
-
-
-func TestLfuCache_GetGet(t *testing.T){
-	lru := NewLfuCache(int64(1),nil)
-	lru.Add("key1",String("1,2,3"))
-	if v,ok := lru.Get("key1");!ok||string(v.(String)) != "1,2,3"{
+func TestLfuCache_GetGet(t *testing.T) {
+	lru := NewLfuCache(int64(1), nil)
+	lru.Add("key1", String("1,2,3"))
+	if v, ok := lru.Get("key1"); !ok || string(v.(String)) != "1,2,3" {
 		t.Fatalf("cache fail")
-	}else{
-		fmt.Println("get success value:",v)
+	} else {
+		fmt.Println("get success value:", v)
 	}
 
 	if _, ok := lru.Get("key2"); ok {
