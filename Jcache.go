@@ -20,12 +20,32 @@ type Group struct {
 	name      string
 	getter    Getter
 	mainCache cache
+	peers     PeerPicker
 }
 
 var (
 	mu     sync.RWMutex
 	groups = make(map[string]*Group)
 )
+
+func (g *Group) RegisterPeers(peers PeerPicker) {
+	if g.peers != nil {
+		panic("RegisterPeerPicker called more than once")
+	}
+	g.peers = peers
+}
+
+func (g *Group) load(key string) (value Byteview, err error) {
+	if g.peers != nil {
+		if peer, ok := g.peers.PickPeer(key); ok {
+			if value, err = g.getFromPeer(peer, key); ok {
+				return value, nil
+			}
+			log.Println("[Jcache] Fail to get from peer", err)
+		}
+	}
+	return g.getLocally(key)
+}
 
 func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	if getter == nil {
@@ -60,10 +80,6 @@ func (g *Group) Get(key string) (Byteview, error) {
 	return g.load(key)
 }
 
-func (g *Group) load(key string) (value Byteview, err error) {
-	return g.getLocally(key)
-}
-
 func (g *Group) getLocally(key string) (Byteview, error) {
 	bytes, err := g.getter.Get(key)
 	if err != nil {
@@ -76,4 +92,12 @@ func (g *Group) getLocally(key string) (Byteview, error) {
 
 func (g *Group) populateCache(key string, value Byteview) {
 	g.mainCache.add(key, value)
+}
+
+func (g *Group) getFromPeer(peer PeerGetter, key string) (Byteview, error) {
+	bytes, err := peer.Get(g.name, key)
+	if err != nil {
+		return Byteview{}, err
+	}
+	return Byteview{b: bytes}, nil
 }

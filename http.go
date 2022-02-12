@@ -1,18 +1,26 @@
 package JCache
 
 import (
+	"JCache/consistenthash"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 )
 
-const defaultBasePath = "/_Jcache/"
+const (
+	defaultBasePath = "/_Jcache/"
+	defaultReplicas = 50
+)
 
 //peer picker pool
 type HTTPPool struct {
-	self     string
-	basePath string
+	self       string
+	basePath   string
+	mu         sync.Mutex
+	peers      *consistenthash.Map
+	httpGetter map[string]*httpGetter
 }
 
 func NewHTTPPool(self string) *HTTPPool {
@@ -21,6 +29,29 @@ func NewHTTPPool(self string) *HTTPPool {
 		basePath: defaultBasePath,
 	}
 }
+
+func (p *HTTPPool) Set(peers ...string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.peers = consistenthash.New(defaultReplicas, nil)
+	p.peers.Add(peers...)
+	p.httpGetter = make(map[string]*httpGetter, len(peers))
+	for _, peer := range peers {
+		p.httpGetter[peer] = &httpGetter{baseURL: peer + p.basePath}
+	}
+}
+
+func (p *HTTPPool) PickPeer(key string) (PeerGetter, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if peer := p.peers.Get(key); peer != "" && peer != p.self {
+		p.Log("Pick peer %v", peer)
+		return p.httpGetter[peer], true
+	}
+	return nil, false
+}
+
+var _ PeerPicker = (*HTTPPool)(nil)
 
 func (p *HTTPPool) Log(format string, v ...interface{}) {
 	log.Printf("[server %s] %s", p.self, fmt.Sprintf(format, v...))
