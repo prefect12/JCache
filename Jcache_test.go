@@ -26,12 +26,12 @@ var db = map[string]string{
 
 func TestGet(t *testing.T){
 	loadCount := make(map[string]int,len(db))
-	gee := newGroup("score",2<<10,GetterFunc(
+	myCache:= newGroup("score",2<<10,GetterFunc(
 		func(key string)([]byte,error){
 			log.Println("[SlowDB] search key",key)
 			if v,ok := db[key];ok{
 				if _,ok := loadCount[key];!ok{
-					loadCount[key] = 0
+					loadCount[key] = 1
 				}
 				return []byte(v),nil
 			}
@@ -39,14 +39,16 @@ func TestGet(t *testing.T){
 		}))
 
 	for k,v := range db{
-		if view,err := gee.Get(k);err != nil || view.String() != v{
+		if view,err := myCache.Get(k);err != nil || view.String() != v{
 			t.Fatalf("faild to get value from Tom")
 		}
-		if _,err := gee.Get(k);err != nil || loadCount[k] > 1{
+		if _,err := myCache.Get(k);err != nil || loadCount[k] > 1{
 			t.Fatalf("cache %s miss",k)
+		}else{
+			fmt.Println(loadCount)
 		}
 	}
-	if view,err := gee.Get("unknow");err  == nil{
+	if view,err := myCache.Get("unknown");err  == nil{
 		t.Fatalf("the value of unknow should be empty,but %s got",view)
 	}
 }

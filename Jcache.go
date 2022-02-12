@@ -27,7 +27,7 @@ var(
 	groups = make(map[string]*Group)
 )
 
-func newGroup(name string,cacheBytes int64,getter Getter)*Group{
+func NewGroup(name string,cacheBytes int64,getter Getter)*Group{
 	if getter == nil{
 		panic("nil Getter")
 	}
