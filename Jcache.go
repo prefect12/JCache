@@ -1,6 +1,7 @@
 package JCache
 
 import (
+	"JCache/singleflight"
 	"fmt"
 	"log"
 	"sync"
@@ -21,6 +22,7 @@ type Group struct {
 	getter    Getter
 	mainCache cache
 	peers     PeerPicker
+	loader    *singleflight.Group
 }
 
 var (
@@ -36,15 +38,21 @@ func (g *Group) RegisterPeers(peers PeerPicker) {
 }
 
 func (g *Group) load(key string) (value Byteview, err error) {
-	if g.peers != nil {
-		if peer, ok := g.peers.PickPeer(key); ok {
-			if value, err = g.getFromPeer(peer, key); ok {
-				return value, nil
+	viewi, err := g.loader.Do(key, func() (interface{}, error) {
+		if g.peers != nil {
+			if peer, ok := g.peers.PickPeer(key); ok {
+				if value, err = g.getFromPeer(peer, key); ok {
+					return value, nil
+				}
+				log.Println("[Jcache] Fail to get from peer", err)
 			}
-			log.Println("[Jcache] Fail to get from peer", err)
 		}
+		return g.getLocally(key)
+	})
+	if err == nil {
+		return viewi.(Byteview), nil
 	}
-	return g.getLocally(key)
+	return
 }
 
 func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
@@ -57,6 +65,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		name:      name,
 		getter:    getter,
 		mainCache: cache{cacheBytes: cacheBytes},
+		loader:    &singleflight.Group{},
 	}
 	groups[name] = g
 	return g
